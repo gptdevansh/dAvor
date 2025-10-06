@@ -7,7 +7,8 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 public class DAvorApplication {
 
 	public static void main(String[] args) {
-		SpringApplication.run(DAvorApplication.class, args);
+
+        SpringApplication.run(DAvorApplication.class, args);
 	}
 
 }

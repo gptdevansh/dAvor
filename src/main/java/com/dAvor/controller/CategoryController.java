@@ -1,54 +1,62 @@
 package com.dAvor.controller;
 
 import com.dAvor.model.Category;
+import com.dAvor.service.CategoryService;
 import com.dAvor.service.imple.CategoryServiceImple;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api")
 public class CategoryController {
 
-    @Autowired
-    CategoryServiceImple categoryServiceImple;
 
-    public void setCategoryServiceImple(CategoryServiceImple categoryServiceImple) {
-        this.categoryServiceImple = categoryServiceImple;
+    private final CategoryService categoryService;
+
+    @Autowired
+    public CategoryController(CategoryService categoryService) {
+        this.categoryService = categoryService;
     }
+
 
     @GetMapping("/public/categories")
     ResponseEntity<List<Category>> allCategories(){
-        return new ResponseEntity<>(categoryServiceImple.allCategories(), HttpStatus.OK);
+        return new ResponseEntity<>(categoryService.allCategories(), HttpStatus.OK);
     }
 
+//    @ResponseStatus(HttpStatus.OK)
+//    @GetMapping("/public/categories")
+//    List<Category> allCategories(){
+//        return categoryServiceImple.allCategories();
+//    }
+
+
+
     @PostMapping("/admin/categories")
-    ResponseEntity<String> addCategory(@RequestBody Category category){
-        categoryServiceImple.addCategory(category);
-        return new ResponseEntity<>("Category added successfully ... ", HttpStatus.CREATED);
+    ResponseEntity<Map<String,String>> addCategory(@Valid @RequestBody Category category){
+        categoryService.addCategory(category);
+        return new ResponseEntity<>(Map.of("message", "Category added successfully. "), HttpStatus.CREATED);
     }
 
     @DeleteMapping("/admin/categories/{categoryId}")
-    ResponseEntity<String> deleteCategory(@PathVariable Long categoryId ){
-        try{
-            String status =  categoryServiceImple.deleteCategory(categoryId);
-            return new ResponseEntity<>(status, HttpStatus.OK);
-        }catch(ResponseStatusException e){
-            return new ResponseEntity(e.getMessage(), e.getStatusCode());
-        }
+    ResponseEntity<Map<String, String>> deleteCategory(@PathVariable Long categoryId ){
+
+            String status = categoryService.deleteCategory(categoryId);
+            return new ResponseEntity<>(Map.of("message", status), HttpStatus.OK);
+
     }
 
     @PutMapping("/admin/categories/{categoryId}")
-    ResponseEntity<String> updateCategory(@RequestBody Category category, @PathVariable Long categoryId){
-        try{
-            Category updatedCategory = categoryServiceImple.updateCategory(category, categoryId);
-            return new ResponseEntity<>( updatedCategory.getCategoryId() + " has updated.", HttpStatus.OK);
-        }catch (ResponseStatusException e){
-            return new ResponseEntity<>(e.getReason(), e.getStatusCode());
-        }
+    ResponseEntity<Map<String, String>> updateCategory(@Valid @RequestBody Category category,@Valid @PathVariable Long categoryId){
+
+            Category updatedCategory = categoryService.updateCategory(category, categoryId);
+            return new ResponseEntity<>( Map.of("message", updatedCategory.getCategoryId() + " has updated."), HttpStatus.OK);
+
     }
 }
