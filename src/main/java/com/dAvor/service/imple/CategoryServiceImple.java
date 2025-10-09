@@ -3,9 +3,15 @@ package com.dAvor.service.imple;
 import com.dAvor.exception.APIEXception;
 import com.dAvor.exception.ResourceNotFoundException;
 import com.dAvor.model.Category;
+import com.dAvor.payload.CategoryDTO;
+import com.dAvor.payload.CategoryResponse;
 import com.dAvor.repository.CategoryRepository;
 import com.dAvor.service.CategoryService;
+import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -17,30 +23,55 @@ public class CategoryServiceImple implements CategoryService {
 
     private final CategoryRepository categoryRepository;
 
+    private final ModelMapper modelMapper;
+
     @Autowired
-    public CategoryServiceImple(CategoryRepository categoryRepository) {
+    public CategoryServiceImple(CategoryRepository categoryRepository, ModelMapper modelMapper) {
         this.categoryRepository = categoryRepository;
+        this.modelMapper = modelMapper;
     }
 
     @Override
-    public List<Category> allCategories() {
-        List<Category> categories = categoryRepository.findAll();
+    public CategoryResponse allCategories(Integer pageNumber, Integer pageSize) {
+        Pageable pageable = PageRequest.of(pageNumber, pageSize);
+        Page<Category> categoryPage = categoryRepository.findAll(pageable);
+        List<Category> categories = categoryPage.getContent();
         if ( categories.isEmpty()) throw new APIEXception("There is no Category exist.");
-        return categories;
+
+        List<CategoryDTO> categoryDTOList = categories
+                                                .stream()
+                                                .map(category -> modelMapper.map(category, CategoryDTO.class))
+                                                .toList();
+
+        CategoryResponse categoryResponse = new CategoryResponse();
+
+        categoryResponse.setContent(categoryDTOList);
+        categoryResponse.setPageNumber(categoryPage.getNumber());
+        categoryResponse.setPageSize(categoryPage.getSize());
+        categoryResponse.setTotalPages(categoryPage.getTotalPages());
+        categoryResponse.setTotalElements(categoryPage.getTotalElements());
+        categoryResponse.setIsLastPage(categoryPage.isLast());
+
+        return categoryResponse;
     }
 
     @Override
-    public void addCategory(Category category) {
-        Category existingCategory =categoryRepository.findByCategoryName(category.getCategoryName());
+    public CategoryDTO addCategory(CategoryDTO categoryDTO) {
+
+        Category existingCategory = categoryRepository.findByCategoryName(categoryDTO.getCategoryName().trim());
         if(existingCategory == null){
-            categoryRepository.save(category);
+
+            Category category = modelMapper.map(categoryDTO, Category.class);
+            Category savedCategory = categoryRepository.save(category);
+
+            return modelMapper.map(savedCategory , CategoryDTO.class);
         }else{
             throw new APIEXception("Category with name "+ existingCategory.getCategoryName()+ " already exist.");
         }
     }
 
     @Override
-    public String deleteCategory(Long categoryId) {
+    public CategoryDTO deleteCategory(Long categoryId) {
 
         Optional<Category> optionalExistCategory = categoryRepository.findById(categoryId);
 
@@ -48,13 +79,13 @@ public class CategoryServiceImple implements CategoryService {
 
 
         categoryRepository.delete(existCategory);
-        return existCategory.getCategoryName() + " category deleted successfully.";
+        return modelMapper.map(existCategory, CategoryDTO.class);
     }
 
     @Override
-    public Category updateCategory(Category category, Long categoryId) {
+    public CategoryDTO updateCategory(CategoryDTO categoryDTO, Long categoryId) {
 
-        Category savedCategory = categoryRepository.findByCategoryName(category.getCategoryName());
+        Category savedCategory = categoryRepository.findByCategoryName(categoryDTO.getCategoryName().trim());
 
         if(savedCategory != null){
             throw new APIEXception("Category with Id "+ savedCategory.getCategoryId() + " and name "+ savedCategory.getCategoryName()+ " already exist.");
@@ -64,8 +95,11 @@ public class CategoryServiceImple implements CategoryService {
 
         Category existCategory = optionalExistCategory.orElseThrow(() -> new ResourceNotFoundException("Category", "Category Id", categoryId) );
 
-        existCategory.setCategoryName(category.getCategoryName());
+        Category newCategory = modelMapper.map(categoryDTO, Category.class);
 
-        return categoryRepository.save(existCategory);
+        existCategory.setCategoryName(newCategory.getCategoryName());
+        Category updatedCategory = categoryRepository.save(existCategory);
+
+        return modelMapper.map(updatedCategory, CategoryDTO.class);
     }
 }

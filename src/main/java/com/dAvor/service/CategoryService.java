@@ -1,12 +1,14 @@
 package com.dAvor.service;
 
 import com.dAvor.model.Category;
+import com.dAvor.payload.CategoryDTO;
+import com.dAvor.payload.CategoryResponse;
 
 import java.util.List;
 
 public interface CategoryService {
-    List<Category> allCategories();
-    void addCategory(Category category);
-    String deleteCategory(Long categoryId);
-    Category updateCategory(Category category, Long categoryId);
+    CategoryResponse allCategories(Integer pageNumbe, Integer pageSize);
+    CategoryDTO addCategory(CategoryDTO category);
+    CategoryDTO deleteCategory(Long categoryId);
+    CategoryDTO updateCategory(CategoryDTO categoryDTO, Long categoryId);
 }
